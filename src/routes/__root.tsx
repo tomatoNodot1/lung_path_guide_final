@@ -12,7 +12,6 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { GameStateProvider, useGameState } from "../lib/game-state";
-import { Volume2, VolumeX } from "lucide-react";
 
 function NotFoundComponent() {
   return (
@@ -134,27 +133,20 @@ function RootComponent() {
 }
 
 function AppShell({ children }: { children: ReactNode }) {
-  const { muted, toggleMuted } = useGameState();
-
-  // ====== 优化后的全局点击音效逻辑 ======
+  // 强制默认不静音，不提供切换按钮
   useEffect(() => {
     const handleGlobalClick = (e: MouseEvent) => {
-      if (muted) return; // 如果静音则不播
-
       const target = e.target as HTMLElement;
-      // 检查点击的是不是可交互元素
       if (
         target.closest('button') || 
         target.closest('a') || 
         target.closest('[role="button"]') || 
         target.closest('.cursor-pointer')
       ) {
-        // 直接从页面上找到那个 audio 标签来播放
         const clickAudio = document.getElementById('global-click-audio') as HTMLAudioElement;
         if (clickAudio) {
-          clickAudio.currentTime = 0; // 重置进度，支持连续点击
+          clickAudio.currentTime = 0;
           clickAudio.volume = 0.4;
-          // 这里的 play 浏览器极少拦截，因为它是由真实的点击事件直接触发的
           clickAudio.play().catch(err => console.log('Audio blocked:', err)); 
         }
       }
@@ -162,28 +154,15 @@ function AppShell({ children }: { children: ReactNode }) {
 
     document.addEventListener('click', handleGlobalClick);
     return () => document.removeEventListener('click', handleGlobalClick);
-  }, [muted]);
-  // ===================================
+  }, []);
 
   return (
     <div className="min-h-[100dvh] w-full bg-[#fcfbf8] text-slate-900">
       <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-[480px] flex-col px-5 pb-8 pt-6">
-        
-        {/* 把音频播放器实打实地放在页面里，但不显示出来 */}
         <audio id="global-click-audio" src="/effect_click.mp3" preload="auto" />
-
-        <button
-          type="button"
-          onClick={toggleMuted}
-          aria-label={muted ? "开启语音" : "关闭语音"}
-          className="absolute right-4 top-4 z-50 inline-flex h-12 items-center gap-2 rounded-full bg-white px-4 text-base font-bold shadow-md ring-1 ring-slate-200 active:scale-95"
-        >
-          {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-          <span>语音：{muted ? "关" : "开"}</span>
-        </button>
+        {/* 💡 删掉了右上角的声音控制按钮 */}
         {children}
       </div>
     </div>
   );
 }
-

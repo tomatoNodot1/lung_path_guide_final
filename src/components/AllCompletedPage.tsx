@@ -44,22 +44,27 @@ function Confetti() {
 }
 
 export function AllCompletedPage() {
-  const { userId, logout, logAction } = useGameState();
+  // 💡 1. 这里的解构里加上了 soundEnabled，如果你的全局状态里叫 isMuted，就改成 !isMuted
+  const { userId, logout, logAction, soundEnabled } = useGameState();
   const navigate = useNavigate();
   const [reviewing, setReviewing] = useState(false);
   const [copyHint, setCopyHint] = useState(false);
 
-  // ====== 新增：音频连招播放逻辑 ======
+  // ====== 新增：受开关控制的音频连招播放逻辑 ======
   useEffect(() => {
     logAction("enter_all_completed");
+
+    // 如果全局把声音关掉了，这里直接拦截，什么都不放
+    if (soundEnabled === false) {
+      return;
+    }
 
     const audioCongrats = new Audio('/end_congrats.mp3');
     const audioWelfare = new Audio('/end_welfare_taiyuan.mp3');
 
-    // 记录当前正在播放的音频，方便长辈中途退出时“急刹车”
     let currentAudio: HTMLAudioElement = audioCongrats;
 
-    // 1. 先播放恭喜通关的声音
+    // 1. 只有开启声音时才播放
     audioCongrats.play().catch(() => {});
 
     // 2. 监听第一段，播完自动接续第二段
@@ -69,12 +74,12 @@ export function AllCompletedPage() {
     };
     audioCongrats.addEventListener('ended', handleCongratsEnded);
 
-    // 3. 离开页面时的清理工作：解绑监听器，掐断正在播放的声音
+    // 3. 离开页面时的清理工作
     return () => {
       audioCongrats.removeEventListener('ended', handleCongratsEnded);
       if (currentAudio) currentAudio.pause();
     };
-  }, [logAction]);
+  }, [logAction, soundEnabled]); // 💡 2. 把 soundEnabled 放进依赖数组里，开关变化时能立刻响应
   // =====================================
 
   const handleSwitch = () => {
